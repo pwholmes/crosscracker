@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# VS Code settings
+.vscode/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Environment variables and secrets
+.env
+.env.*
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# MyPy, Pyright, and other type checker caches
+.mypy_cache/
+.pyrightcache/
