@@ -156,12 +156,8 @@ li.solved {
     background-color: #f9f9f9;
     padding: 15px;
     border-radius: 4px;
-    margin-top: 20px;
-}
-
-h3 {
-    color: #2c3e50;
-    margin-bottom: 10px;
+    margin-top: 10px;
+    margin-bottom: 20px;
 }
 
 #solution-status {
