@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrossCracker - Crossword Puzzle Solver</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CrossCracker</h1>
+            <p>Watch the crossword puzzle being solved in real-time</p>
+        </header>
+        
+        <div class="controls">
+            <button id="initialize-btn">Initialize Puzzle</button>
+            <button id="solve-step-btn" disabled>Solve Step</button>
+            <button id="solve-all-btn" disabled>Solve All</button>
+        </div>
+        
+        <div class="puzzle-container">
+            <div class="grid-container">
+                <div id="crossword-grid"></div>
+            </div>
+            
+            <div class="clues-container">
+                <div class="across-clues">
+                    <h2>Across</h2>
+                    <ul id="across-clues-list"></ul>
+                </div>
+                
+                <div class="down-clues">
+                    <h2>Down</h2>
+                    <ul id="down-clues-list"></ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="solution-info">
+            <h3>Solution Progress</h3>
+            <div id="solution-status">Click "Initialize Puzzle" to start</div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
