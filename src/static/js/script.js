@@ -22,6 +22,7 @@ solveAllBtn.addEventListener('click', solveAll);
 async function initializePuzzle() {
     try {
         solutionStatus.textContent = 'Initializing puzzle...';
+        solutionStatus.className = '';
         
         const response = await fetch('/api/initialize', {
             method: 'POST',
@@ -153,6 +154,7 @@ function renderClues() {
 async function solveStep() {
     try {
         solutionStatus.textContent = 'Solving step...';
+        solutionStatus.className = '';
         
         const response = await fetch('/api/solve_step');
         
@@ -172,31 +174,31 @@ async function solveStep() {
         renderGrid();
         renderClues();
         
-    // Update status with message from server
-    if (data.message) {
-        solutionStatus.textContent = data.message;
-    } else if (data.progress) {
-        solutionStatus.textContent = 'Step completed. Progress made!';
-    } else {
-        solutionStatus.textContent = 'Step completed. No further progress. Try "Solve All" to use backtracking.';
-    }
-    
-    // If all clues are assigned, disable the solve step button
-    const allSolved = acrossClues.every(clue => clue.assigned) && downClues.every(clue => clue.assigned);
-    if (allSolved) {
-        solveStepBtn.disabled = true;
-        
-        // Update status with correctness information
-        if (data.is_correct === true) {
-            solutionStatus.textContent = 'Puzzle solved correctly!';
-            solutionStatus.classList.add('correct');
-        } else if (data.is_correct === false) {
-            solutionStatus.textContent = 'Puzzle solved, but the solution is incorrect.';
-            solutionStatus.classList.add('incorrect');
+        // Update status with message from server
+        if (data.message) {
+            solutionStatus.textContent = data.message;
+        } else if (data.progress) {
+            solutionStatus.textContent = 'Step completed. Progress made!';
         } else {
-            solutionStatus.textContent = 'Puzzle solved! All clues have been assigned.';
+            solutionStatus.textContent = 'Step completed. No further progress. Try "Solve All" to use backtracking.';
         }
-    }
+        
+        // If all clues are assigned, disable the solve step button
+        const allSolved = acrossClues.every(clue => clue.assigned) && downClues.every(clue => clue.assigned);
+        if (allSolved) {
+            solveStepBtn.disabled = true;
+            
+            // Update status with correctness information
+            if (data.is_correct === true) {
+                solutionStatus.textContent = 'Puzzle solved correctly!';
+                solutionStatus.classList.add('correct');
+            } else if (data.is_correct === false) {
+                solutionStatus.textContent = 'Puzzle solved, but the solution is incorrect.';
+                solutionStatus.classList.add('incorrect');
+            } else {
+                solutionStatus.textContent = 'Puzzle solved! All clues have been assigned.';
+            }
+        }
     } catch (error) {
         console.error('Error solving step:', error);
         solutionStatus.textContent = `Error: ${error.message}`;
@@ -224,6 +226,7 @@ function updateCluesWithAssignments(assignedClues) {
 async function solveAll() {
     try {
         solutionStatus.textContent = 'Solving puzzle step by step...';
+        solutionStatus.className = '';
         solveStepBtn.disabled = true;
         solveAllBtn.disabled = true;
         
