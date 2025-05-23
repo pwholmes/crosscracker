@@ -82,7 +82,8 @@ class Grid:
                 is_black = (ch == '#')
                 cell = Cell(r, c, is_black=is_black)
                 if not is_black:
-                    cell.char = ch
+                    # Set char to None for empty cells (represented by '*')
+                    cell.char = None if ch == '*' else ch
                 grid_row.append(cell)
             self.grid.append(grid_row)
 
