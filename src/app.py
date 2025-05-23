@@ -1,8 +1,8 @@
 from flask import Flask, render_template, jsonify
 from typing import List, Dict, Any, Optional, Set
 from src.crossword_solver import CrosswordSolver, Clue, Grid
-# Import test data from test_crossword_solver.py
-from test_crossword_solver import EMPTY_TEST_GRID, TEST_CLUES
+# Import test data from data.test_data
+from data.test_data import EMPTY_TEST_GRID, TEST_CLUES
 
 app = Flask(__name__)
 

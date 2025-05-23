@@ -1,4 +1,4 @@
-from src.crossword_solver import CrosswordSolver, Clue, Grid
+from src.crossword_solver import Clue
 
 # Sample 5x5 crossword grid for testing
 # '#' denotes a black square.
@@ -32,14 +32,3 @@ TEST_CLUES = [
     Clue(4, 'D', "Science Guy Bill", 3, 0, 4, [("NYE", 100)]),
     Clue(6, 'D', "Spirit in a martini", 3, 2, 0, [("GIN", 90), ("RUM", 50)])
 ]
-
-# Create and print the sample grid for verification
-test_grid = Grid(EMPTY_TEST_GRID, TEST_CLUES)
-print("Empty grid:\n")
-test_grid.print()
-
-# Initialize solver with test grid
-solver = CrosswordSolver(test_grid)
-solver.solve()
-print("\nSolved grid:\n")
-solver.grid.print()
