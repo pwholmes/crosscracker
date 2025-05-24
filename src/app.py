@@ -1,14 +1,14 @@
 from flask import Flask, render_template, jsonify
-from typing import List, Dict, Any, Optional
-from src.crossword_solver import StepwiseSolver, Clue, Grid
+from typing import List, Dict, Any
+from src.crossword_solver import CrosswordSolver, Clue, Grid
 # Import test data from data.test_data
 from data.test_data import EMPTY_TEST_GRID, TEST_CLUES
 
 app = Flask(__name__)
 
 # Global variables to store the solver state
-solver: Optional[StepwiseSolver] = None
-grid: Optional[Grid] = None
+solver: CrosswordSolver|None = None
+grid: Grid|None = None
 
 @app.route('/')
 def index():
@@ -34,7 +34,7 @@ def initialize_puzzle():
     
     # Create grid and solver with fresh clues
     grid = Grid(EMPTY_TEST_GRID, fresh_clues)
-    solver = StepwiseSolver(grid)
+    solver = CrosswordSolver(grid)
     
     # Get initial grid state
     grid_state: List[List[Dict[str, Any]]] = []
