@@ -1,4 +1,4 @@
-from src.crossword_solver import Clue
+from src.entities import Clue
 
 # Sample 5x5 crossword grid for testing
 # '#' denotes a black square.
