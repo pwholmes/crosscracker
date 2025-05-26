@@ -210,14 +210,14 @@ class CrosswordSolver:
         for _ in range(max_steps):
             result = self.solve_step()
             self.solution_steps.append(result)
-            if result.get('is_correct', False):
+            if result.get('solved', False):
                 return result
             if not result.get('progress', False):
                 return result
         return {
             'progress': False,
             'message': f'Maximum steps ({max_steps}) reached. Puzzle not solved.',
-            'is_correct': False
+            'solved': False
         }
 
     def solve_step(self) -> Dict[str, Any]:
@@ -227,7 +227,7 @@ class CrosswordSolver:
             A dictionary with information about the step:
             - progress: True if progress was made, False otherwise
             - message: A message describing what happened
-            - is_correct: True if the solution is correct (only set when all clues are assigned)
+            - solved: True if the solution is correct (only set when all clues are assigned)
         """
         # Find an unassigned clue with the fewest candidates
         unassigned_clues = [clue for clue in self.grid.clues if not clue.assigned]
@@ -237,7 +237,7 @@ class CrosswordSolver:
             return {
                 'progress': False,
                 'message': 'All clues are already assigned.',
-                'is_correct': True
+                'solved': True
             }
         
         # Get the current context
@@ -256,7 +256,7 @@ class CrosswordSolver:
                     return {
                         'progress': False,
                         'message': 'All possible combinations have been tried. No solution found.',
-                        'is_correct': False
+                        'solved': False
                     }
                 
                 # Get the last assigned clue from our assignment order
@@ -289,7 +289,7 @@ class CrosswordSolver:
                 return {
                     'progress': True,
                     'message': f'Backtracked: unassigned "{last_assigned}" from {last_clue.number} {last_clue.direction}.',
-                    'is_correct': False
+                    'solved': False
                 }
             
             # Use the valid clues
@@ -307,7 +307,7 @@ class CrosswordSolver:
                 return {
                     'progress': False,
                     'message': 'No candidates available and no previous assignments to backtrack to.',
-                    'is_correct': False
+                    'solved': False
                 }
             
             # Get the last assigned clue from our assignment order
@@ -351,7 +351,7 @@ class CrosswordSolver:
             return {
                 'progress': True,
                 'message': f'Backtracked: unassigned "{last_assigned}" from {last_clue.number} {last_clue.direction}.',
-                'is_correct': False
+                'solved': False
             }
         
         # Get the clue key and current context for tracking tried candidates
@@ -384,7 +384,7 @@ class CrosswordSolver:
                 return {
                     'progress': False,
                     'message': 'All possible combinations have been tried. No solution found.',
-                    'is_correct': False
+                    'solved': False
                 }
             
             # We need to backtrack
@@ -392,7 +392,7 @@ class CrosswordSolver:
                 return {
                     'progress': False,
                     'message': 'All candidates tried and no previous assignments to backtrack to.',
-                    'is_correct': False
+                    'solved': False
                 }
             
             # Get the last assigned clue from our assignment order
@@ -426,7 +426,7 @@ class CrosswordSolver:
             return {
                 'progress': progress,
                 'message': message,
-                'is_correct': False
+                'solved': False
             }
         
         # Try each candidate that hasn't been tried yet
@@ -464,7 +464,7 @@ class CrosswordSolver:
                 return {
                     'progress': False,
                     'message': 'All candidates tried and no previous assignments to backtrack to.',
-                    'is_correct': False
+                    'solved': False
                 }
             
             # Get the last assigned clue from our assignment order
@@ -508,7 +508,7 @@ class CrosswordSolver:
             return {
                 'progress': progress,
                 'message': message,
-                'is_correct': False
+                'solved': False
             }
         
         # Debug: Print grid state after assignment
@@ -517,13 +517,13 @@ class CrosswordSolver:
         
         # Check if all clues are assigned
         all_assigned = all(clue.assigned is not None for clue in self.grid.clues)
-        is_correct = all_assigned  # If all clues are assigned, the solution is valid
+        solved = all_assigned  # If all clues are assigned, the solution is valid
         if all_assigned:
             message = 'Puzzle solved correctly!'
         
         return {
             'progress': progress,
             'message': message,
-            'is_correct': is_correct
+            'solved': solved
         }
     

@@ -1,13 +1,15 @@
 from flask import Flask, render_template, jsonify
 from typing import List, Dict, Any
-from src.crossword_solver import CrosswordSolver, Clue, Grid
+from .entities import Grid, Clue
+from .crossword_solver_2 import CrosswordSolver2
+#from .crossword_solver import CrosswordSolver
 # Import test data from data.test_data
 from data.test_data import EMPTY_TEST_GRID, TEST_CLUES
 
 app = Flask(__name__)
 
 # Global variables to store the solver state
-solver: CrosswordSolver|None = None
+solver: CrosswordSolver2|None = None
 grid: Grid|None = None
 
 @app.route('/')
@@ -34,7 +36,7 @@ def initialize_puzzle():
     
     # Create grid and solver with fresh clues
     grid = Grid(EMPTY_TEST_GRID, fresh_clues)
-    solver = CrosswordSolver(grid)
+    solver = CrosswordSolver2(grid)
     
     # Get initial grid state
     grid_state: List[List[Dict[str, Any]]] = []
@@ -90,7 +92,7 @@ def solve_step():
         'assigned_clues': assigned_clues,
         'progress': result['progress'],
         'message': result['message'],
-        'is_correct': result.get('is_correct', False)
+        'solved': result.get('solved', False)
     })
 
 def get_grid_state(grid: Grid) -> List[List[Dict[str, Any]]]:
@@ -136,13 +138,13 @@ def solve_all():
     assigned_clues = get_assigned_clues(grid)
     
     # If all clues are assigned, the solution is valid
-    is_correct = True
+    solved = True
     message = 'Puzzle solved correctly!'
     
     return jsonify({
         'grid': grid_state,
         'assigned_clues': assigned_clues,
-        'is_correct': is_correct,
+        'solved': solved,
         'message': message
     })
 

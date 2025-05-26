@@ -189,10 +189,10 @@ async function solveStep() {
             solveStepBtn.disabled = true;
             
             // Update status with correctness information
-            if (data.is_correct === true) {
+            if (data.solved === true) {
                 solutionStatus.textContent = 'Puzzle solved correctly!';
                 solutionStatus.classList.add('correct');
-            } else if (data.is_correct === false) {
+            } else if (data.solved === false) {
                 solutionStatus.textContent = 'Puzzle solved, but the solution is incorrect.';
                 solutionStatus.classList.add('incorrect');
             } else {
@@ -263,8 +263,8 @@ async function solveAll() {
                         !data.progress;
                         
             // Update status with correctness information if puzzle is solved
-            if (allSolved && data.is_correct !== undefined) {
-                if (data.is_correct === true) {
+            if (allSolved && data.solved !== undefined) {
+                if (data.solved === true) {
                     solutionStatus.textContent = 'Puzzle solved correctly!';
                     solutionStatus.classList.add('correct');
                 } else {
