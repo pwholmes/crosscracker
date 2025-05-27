@@ -151,60 +151,6 @@ function renderClues() {
     });
 }
 
-async function solveStep() {
-    try {
-        solutionStatus.textContent = 'Solving step...';
-        solutionStatus.className = '';
-        
-        const response = await fetch('/api/solve_step');
-        
-        if (!response.ok) {
-            throw new Error('Failed to solve step');
-        }
-        
-        const data = await response.json();
-        console.log('Solve step response:', data);
-        
-        gridData = data.grid;
-        
-        // Update clues with assigned answers
-        updateCluesWithAssignments(data.assigned_clues);
-        
-        // Re-render the grid and clues
-        renderGrid();
-        renderClues();
-        
-        // Update status with message from server
-        if (data.message) {
-            solutionStatus.textContent = data.message;
-        } else if (data.progress) {
-            solutionStatus.textContent = 'Step completed. Progress made!';
-        } else {
-            solutionStatus.textContent = 'Step completed. No further progress. Try "Solve All" to use backtracking.';
-        }
-        
-        // If all clues are assigned, disable the solve step button
-        const allSolved = acrossClues.every(clue => clue.assigned) && downClues.every(clue => clue.assigned);
-        if (allSolved) {
-            solveStepBtn.disabled = true;
-            
-            // Update status with correctness information
-            if (data.solved === true) {
-                solutionStatus.textContent = 'Puzzle solved correctly!';
-                solutionStatus.classList.add('correct');
-            } else if (data.solved === false) {
-                solutionStatus.textContent = 'Puzzle solved, but the solution is incorrect.';
-                solutionStatus.classList.add('incorrect');
-            } else {
-                solutionStatus.textContent = 'Puzzle solved! All clues have been assigned.';
-            }
-        }
-    } catch (error) {
-        console.error('Error solving step:', error);
-        solutionStatus.textContent = `Error: ${error.message}`;
-    }
-}
-
 function updateCluesWithAssignments(assignedClues) {
     if (!assignedClues) return;
     
@@ -223,6 +169,49 @@ function updateCluesWithAssignments(assignedClues) {
     });
 }
 
+
+async function runSolveStep() {
+    const response = await fetch('/api/solve_step');
+    if (!response.ok) {
+        throw new Error('Failed to solve step');
+    }
+    
+    const data = await response.json();
+    gridData = data.grid;
+    
+    // Update clues with assigned answers
+    updateCluesWithAssignments(data.assigned_clues);
+    
+    // Re-render the grid and clues
+    renderGrid();
+    renderClues();
+    
+    // Update status with message from server
+    if (data.message) {
+        solutionStatus.textContent = data.message;
+    }
+    if (data.solved == true) {
+        solutionStatus.classList.add('correct');
+        solveStepBtn.disabled = true;
+        solveAllBtn.disabled = true;
+    } else if (data.progress == false) {
+        solutionStatus.classList.add('incorrect');
+    }
+    return data.solved;
+}
+
+async function solveStep() {
+    try {
+        solutionStatus.textContent = 'Solving step...';
+        solutionStatus.className = '';
+        return await runSolveStep();
+    } catch (error) {
+        console.error('Error solving step:', error);
+        solutionStatus.textContent = `Error: ${error.message}`;
+        return false;
+    }
+}
+
 async function solveAll() {
     try {
         solutionStatus.textContent = 'Solving puzzle step by step...';
@@ -230,48 +219,11 @@ async function solveAll() {
         solveStepBtn.disabled = true;
         solveAllBtn.disabled = true;
         
-        let allSolved = false;
-        
-        while (!allSolved) {
+        let solved = false;
+        while (!solved) {
             // Delay between steps
             await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const response = await fetch('/api/solve_step');
-            
-            if (!response.ok) {
-                throw new Error('Failed to solve step');
-            }
-            
-            const data = await response.json();
-            gridData = data.grid;
-            
-            // Update clues with assigned answers
-            updateCluesWithAssignments(data.assigned_clues);
-            
-            // Re-render the grid and clues
-            renderGrid();
-            renderClues();
-            
-            // Update status
-            if (data.message) {
-                solutionStatus.textContent = data.message;
-            }
-            
-            // Check if all clues are assigned
-            allSolved = acrossClues.every(clue => clue.assigned) && 
-                        downClues.every(clue => clue.assigned) ||
-                        !data.progress;
-                        
-            // Update status with correctness information if puzzle is solved
-            if (allSolved && data.solved !== undefined) {
-                if (data.solved === true) {
-                    solutionStatus.textContent = 'Puzzle solved correctly!';
-                    solutionStatus.classList.add('correct');
-                } else {
-                    solutionStatus.textContent = 'Puzzle solved, but the solution is incorrect.';
-                    solutionStatus.classList.add('incorrect');
-                }
-            }
+            solved = await solveStep();
         }
         
         solveAllBtn.disabled = true;
