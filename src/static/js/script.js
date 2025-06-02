@@ -12,6 +12,7 @@ let gridData = null;
 let acrossClues = [];
 let downClues = [];
 let cellNumbering = {};
+let pauseRequested = false;
 
 // Event Listeners
 initializeBtn.addEventListener('click', initializePuzzle);
@@ -23,6 +24,10 @@ async function initializePuzzle() {
     try {
         solutionStatus.textContent = 'Initializing puzzle...';
         solutionStatus.className = '';
+        
+        // Reset clues state on the client
+        acrossClues = [];
+        downClues = [];
         
         const response = await fetch('/api/initialize', {
             method: 'POST',
@@ -40,6 +45,10 @@ async function initializePuzzle() {
         acrossClues = data.across_clues;
         downClues = data.down_clues;
         
+        // Remove any lingering confidence/assigned fields from previous runs
+        acrossClues.forEach(clue => { delete clue.assigned; delete clue.confidence; });
+        downClues.forEach(clue => { delete clue.assigned; delete clue.confidence; });
+        
         // Create cell numbering map
         createCellNumbering();
         
@@ -50,6 +59,7 @@ async function initializePuzzle() {
         // Enable solve buttons
         solveStepBtn.disabled = false;
         solveAllBtn.disabled = false;
+        pauseBtn.disabled = true;
         
         solutionStatus.textContent = 'Puzzle initialized. Click "Solve Step" to start solving or "Solve All" to solve the entire puzzle.';
     } catch (error) {
@@ -130,7 +140,12 @@ function renderClues() {
         
         if (clue.assigned) {
             listItem.classList.add('solved');
-            listItem.textContent += ` → ${clue.assigned}`;
+            // Show confidence if available
+            if (clue.confidence !== undefined && clue.confidence !== null) {
+                listItem.textContent += ` → ${clue.assigned} (${clue.confidence})`;
+            } else {
+                listItem.textContent += ` → ${clue.assigned}`;
+            }
         }
         
         acrossCluesList.appendChild(listItem);
@@ -144,7 +159,11 @@ function renderClues() {
         
         if (clue.assigned) {
             listItem.classList.add('solved');
-            listItem.textContent += ` → ${clue.assigned}`;
+            if (clue.confidence !== undefined && clue.confidence !== null) {
+                listItem.textContent += ` → ${clue.assigned} (${clue.confidence})`;
+            } else {
+                listItem.textContent += ` → ${clue.assigned}`;
+            }
         }
         
         downCluesList.appendChild(listItem);
@@ -159,11 +178,13 @@ function updateCluesWithAssignments(assignedClues) {
             const clue = acrossClues.find(c => c.number === assigned.number);
             if (clue) {
                 clue.assigned = assigned.assigned;
+                clue.confidence = assigned.confidence;
             }
         } else {
             const clue = downClues.find(c => c.number === assigned.number);
             if (clue) {
                 clue.assigned = assigned.assigned;
+                clue.confidence = assigned.confidence;
             }
         }
     });
@@ -212,25 +233,46 @@ async function solveStep() {
     }
 }
 
+function pauseSolving() {
+    pauseRequested = true;
+}
+
+// Add a Pause button to the controls
+const pauseBtn = document.createElement('button');
+pauseBtn.id = 'pause-btn';
+pauseBtn.textContent = 'Pause';
+pauseBtn.disabled = true;
+document.querySelector('.controls').appendChild(pauseBtn);
+pauseBtn.addEventListener('click', pauseSolving);
+
 async function solveAll() {
     try {
         solutionStatus.textContent = 'Solving puzzle step by step...';
         solutionStatus.className = '';
         solveStepBtn.disabled = true;
         solveAllBtn.disabled = true;
+        pauseBtn.disabled = false;
         
         let solved = false;
-        while (!solved) {
+        pauseRequested = false;
+        while (!solved && !pauseRequested) {
             // Delay between steps
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise(resolve => setTimeout(resolve, 50));
             solved = await solveStep();
         }
-        
-        solveAllBtn.disabled = true;
+        pauseBtn.disabled = true;
+        if (pauseRequested) {
+            solutionStatus.textContent = 'Paused.';
+            solveStepBtn.disabled = false;
+            solveAllBtn.disabled = false;
+        } else {
+            solveAllBtn.disabled = true;
+        }
     } catch (error) {
         console.error('Error solving puzzle:', error);
         solutionStatus.textContent = `Error: ${error.message}`;
         solveStepBtn.disabled = false;
         solveAllBtn.disabled = false;
+        pauseBtn.disabled = true;
     }
 }

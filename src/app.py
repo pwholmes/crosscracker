@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify
 from typing import List, Dict, Any
-from .entities import Grid, Clue
+from .entities import Grid
 from .crossword_solver import CrosswordSolver
 from data.test_data import EMPTY_TEST_GRID, TEST_CLUES
 
@@ -18,22 +18,8 @@ def index():
 def initialize_puzzle():
     global solver, grid
     
-    # Create fresh copies of the test clues with assigned=None
-    fresh_clues: List[Clue] = []
-    for clue in TEST_CLUES:
-        fresh_clue = Clue(
-            clue.number,
-            clue.direction,
-            clue.text,
-            clue.length,
-            clue.start[0],
-            clue.start[1],
-            clue.candidates.copy() if clue.candidates else []
-        )
-        fresh_clues.append(fresh_clue)
-    
-    # Create grid and solver with fresh clues
-    grid = Grid(EMPTY_TEST_GRID, fresh_clues)
+    # Create grid and solver with test clues
+    grid = Grid(EMPTY_TEST_GRID, TEST_CLUES)
     solver = CrosswordSolver(grid)
     
     # Get initial grid state

@@ -26,7 +26,7 @@ class Clue:
         length: int,
         start_row: int,
         start_col: int,
-        candidates: list[tuple[str, float]] = []
+        candidates: list[tuple[str, int]] = []
     ):
         """
         Represents an Across or Down clue in the crossword.
@@ -44,13 +44,14 @@ class Clue:
         self.text = text
         self.length = length
         self.start = (start_row, start_col)
-        self.candidates: list[tuple[str, float]] = candidates  # Possible answers
+        self.candidates: list[tuple[str, int]] = candidates  # Possible answers
         self.assigned: Optional[str] = None           # Chosen answer
 
 class Grid:
-    def __init__(self, pattern: list[str], clues: list[Clue]):
+    def __init__(self, pattern: list[str], clues: list[Clue], candidates: Optional[dict[tuple[int, str], list[tuple[str, int]]]] = None):
         """
         Build a grid of Cells from the provided pattern list.
+        Optionally assign candidates to clues from a provided dictionary.
 
         Args:
             pattern: List of strings with '#' for black squares and '*' for unknown squares.
@@ -68,6 +69,13 @@ class Grid:
                     cell.char = None if ch == '*' else ch
                 grid_row.append(cell)
             self.grid.append(grid_row)
+
+        # Assign candidates to clues if provided
+        if candidates is not None:
+            for clue in self.clues:
+                key = (clue.number, clue.direction)
+                if key in candidates:
+                    clue.candidates = candidates[key]
 
     def display_cell_char(self, cell: Cell) -> str:
         """
