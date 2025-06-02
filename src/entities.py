@@ -58,6 +58,7 @@ class Grid:
         """
         self.grid: list[list[Cell]] = []
         self.clues: list[Clue] = clues
+        self.prepopulated = False
 
         for r, row in enumerate(pattern):
             grid_row: list[Cell] = []
@@ -72,6 +73,7 @@ class Grid:
 
         # Assign candidates to clues if provided
         if candidates is not None:
+            self.prepopulated = True
             for clue in self.clues:
                 key = (clue.number, clue.direction)
                 if key in candidates:

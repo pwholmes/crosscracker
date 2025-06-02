@@ -19,8 +19,12 @@ def initialize_puzzle():
     global solver, grid
     
     # Create grid and solver with test clues
+    #grid = Grid(EMPTY_TEST_GRID, TEST_CLUES, TEST_ANSWERS)
     grid = Grid(EMPTY_TEST_GRID, TEST_CLUES)
     solver = CrosswordSolver(grid)
+    # Ensure all clues are reset to unassigned
+    for clue in grid.clues:
+        clue.assigned = None
     
     # Get initial grid state
     grid_state: List[List[Dict[str, Any]]] = []
@@ -66,7 +70,6 @@ def solve_step():
     
     # Use the StepwiseSolver to perform one step
     result = solver.solve_step()
-    
     return jsonify({
         'grid': result.get('grid'),
         'assigned_clues': result.get('assigned_clues', []),

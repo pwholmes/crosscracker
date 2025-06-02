@@ -9,7 +9,7 @@ from src.crossword_solver import CrosswordSolver
 from data.test_data import EMPTY_TEST_GRID, TEST_CLUES, TEST_ANSWERS
 
 # Create and print the sample grid for verification
-test_grid = Grid(EMPTY_TEST_GRID, TEST_CLUES, candidates=TEST_ANSWERS)
+test_grid = Grid(EMPTY_TEST_GRID, TEST_CLUES, TEST_ANSWERS)
 print("Empty grid:\n")
 test_grid.print()
 

@@ -1,5 +1,6 @@
 from copy import deepcopy
 import requests
+import hashlib
 
 # Assuming Cell, Clue, and Grid are imported from entities.py
 from .entities import Clue, Grid
@@ -14,13 +15,13 @@ class CrosswordSolver:
             tuple[
                 Grid,
                 list[Clue],
-                dict[tuple[str, int], set[str]],
+                dict[tuple[str, int], set[tuple[str, str]]],
                 Clue,
                 str
             ]
-        ] = []        
-        self.tried_candidates: dict[tuple[str, int], set[str]] = {}
-        self._prepopulated = False        
+        ] = []
+        self.tried_candidates: dict[tuple[str, int], set[tuple[str, str]]] = {}
+        self._prepopulated = grid.prepopulated
 
     def get_serialized_grid_state(self) -> list[list[dict[str, Any]]]:
         return [
@@ -43,26 +44,33 @@ class CrosswordSolver:
         """
         prompt = (
             "You are a crossword puzzle expert."
-            "Provide up to three possible answers (no spaces or punctuation).\n"
-            "For each answer, assign a confidence score from 0 to 100 based on how likely it is correct — not just whether it fits.\n"
-            "Confidence should reflect actual likelihood — be skeptical and use lower scores when uncertain or if the clue is vague.\n"
-            "Avoid giving 90+ scores unless you're almost certain based on clue wording or common crossword knowledge.\n"
-            "Answers that are not abbreviations or proper names must be real, complete English words or phrases."
-            "Do NOT make up words or pad words with extra letters so they will fit."
-            "Repeat: Do NOT provide any answer that does not fit the specified length and pattern."
-            "Answers may not include spaces or punctuation."
-            f"Crossword clue: '{clue}'\n"
+            "Provide up to three possible answers for each given clue.  Be optimistic and "
+            "provide answers even if you are not sure about them.\n"
+            "For each answer, assign a confidence score from 0 to 100 based on how likely it"
+            "is correct — not just whether it fits.\n"
+            "Answers may not include spaces or punctuation.\n"
+            "Other than abbreviations or proper names, answers must be real English "
+            "words or phrases.\n"
+            "Do NOT make up words, or pad words with extra letters so they will fit.\n"
+            "Do NOT provide any answer that does not fit the specified length.\n"
+            "Your responses should be given in the following format: "
+            "answer1:confidence1, answer2:confidence2, answer3:confidence3\n"
+            "It is ESSENTIAL that you limit your response to this format.  Provide NO other"
+            "commentary whatsoever."
+            f"Clue: '{clue}'\n"
             f"Length: {length}\n"
             f"Known letters (* = unknown): {known_letters}\n"
-            "Response Format: answer1:confidence1, answer2:confidence2, answer3:confidence3\n"
-            "IMPORANT: Do NOT provide any answers that do not fit the length or pattern. This is the most important rule.\n"
+            #"REPEAT: Do NOT provide any answers that do not fit the length or pattern. This is "
+            #"the most important rule.\n"
         )
         try:
             print(f"[LLM QUERY] Clue: '{clue}' | Length: {length} | Pattern: {known_letters}")
             response = requests.post(
                 "http://localhost:11434/api/generate",
                 json={
-                    "model": "phi4",  # Change to your installed model name if needed
+                    "model": "llama3.1:8b",  # Change to your installed model name if needed
+                    #"model": "gemma:27b",  # Change to your installed model name if needed
+                    #"model": "phi4",  # Change to your installed model name if needed
                     "prompt": prompt,
                     "stream": False
                 },
@@ -100,13 +108,8 @@ class CrosswordSolver:
 
     def current_pattern(self, clue: Clue) -> str:
         dr, dc = (0, 1) if clue.direction == 'A' else (1, 0)
-        pattern: list[str] = []
         r, c = clue.start
-        for _ in range(clue.length):
-            ch = self.grid.grid[r][c].char or '*'
-            pattern.append(ch)
-            r += dr; c += dc
-        return ''.join(pattern)
+        return ''.join(self.grid.grid[r + i * dr][c + i * dc].char or '*' for i in range(clue.length))
 
     def fetch_candidates(self, clue: Clue) -> list[tuple[str, int]]:
         pattern = self.current_pattern(clue)
@@ -154,8 +157,9 @@ class CrosswordSolver:
             self.grid.grid[r][c].char = None
             r += dr; c += dc
 
-    def grid_snapshot(self) -> list[str]:
-        return [''.join('#' if cell.is_black else (cell.char if cell.char is not None else '*') for cell in row) for row in self.grid.grid]
+    def grid_hash(self) -> str:
+        flat = ''.join(''.join('#' if cell.is_black else (cell.char or '*') for cell in row) for row in self.grid.grid)
+        return hashlib.md5(flat.encode()).hexdigest()
 
     def restore_grid_state(self, dest_grid: Grid, src_grid: Grid):
         for r in range(len(src_grid.grid)):
@@ -165,64 +169,62 @@ class CrosswordSolver:
             dest_clue.assigned = src_clue.assigned
 
     def solve_step(self) -> dict[str, object]:
-        # If we haven't gotten a set of"starter" candidate answers for all the clues yet
-        # do that now.
         if not self._prepopulated:
             self.prepopulate_candidates(top_n=3)
             self._prepopulated = True
 
-        # Update the list of unassigned clues
         self.unassigned_clues = [c for c in self.grid.clues if not c.assigned]
-
-        # If all clues are assigned, the puzzle is solved
         if not self.unassigned_clues:
+            msg = "Puzzle complete"
+            print(f"[SOLVE_STEP MESSAGE] {msg}")
             return {
                 "progress": True,
                 "solved": True,
-                "message": "Puzzle complete",
+                "message": msg,
                 "assigned_clues": [],
                 "grid": self.get_serialized_grid_state()
             }
 
-        # Helper function to rank clues by best available confidence
         def clue_best_confidence(clue: Clue) -> int:
             candidates = self.fetch_candidates(clue)
-            # Only consider candidates not already tried for this clue
-            valid: list[int] = [conf for word, conf in candidates if (clue.direction, clue.number) not in self.tried_candidates or word not in self.tried_candidates[(clue.direction, clue.number)]]
+            grid_key = self.grid_hash()
+            valid = [conf for word, conf in candidates if (clue.direction, clue.number) not in self.tried_candidates or (word, grid_key) not in self.tried_candidates[(clue.direction, clue.number)]]
             return -max(valid) if valid else 101
 
-        # Sort unassigned clues so the one with the highest-confidence candidate is tried first
         self.unassigned_clues.sort(key=clue_best_confidence)
+        grid_key = self.grid_hash()
+
         for clue in self.unassigned_clues:
             clue_key = (clue.direction, clue.number)
             if clue_key not in self.tried_candidates:
                 self.tried_candidates[clue_key] = set()
 
             candidates = self.fetch_candidates(clue)
+            attempted: list[tuple[str, int]] = []
+            grid_key = self.grid_hash()
             for word, confidence in candidates:
-                # Skip words already tried for this clue
-                if word in self.tried_candidates[clue_key]:
+                if (word, grid_key) in self.tried_candidates[clue_key]:
                     continue
+                attempted.append((word, confidence))
+                self.tried_candidates[clue_key].add((word, grid_key))
 
-                self.tried_candidates[clue_key].add(word)
-
-                # If the word fits without conflict, assign it and save state for backtracking
                 if self.fits_without_conflict(clue, word):
+                    print(f"[TRY] {clue.direction} {clue.number}: Attempting '{word}' ({confidence}) ... SUCCESS")
                     snapshot = deepcopy(self.grid)
                     clue_snapshot = deepcopy([c for c in self.grid.clues])
                     tried_snapshot = deepcopy(self.tried_candidates)
                     self.backtrack_stack.append((
-                        snapshot, 
-                        clue_snapshot, 
-                        tried_snapshot, 
-                        clue, 
+                        snapshot,
+                        clue_snapshot,
+                        tried_snapshot,
+                        clue,
                         word))
 
                     self.assign(clue, word)
                     return {
-                        "progress": True, 
+                        "progress": True,
                         "solved": False,
-                        "message": f"Assigned '{word}' to {clue.direction} {clue.number}", 
+                        "message": f"Assigned '{word}' to {clue.direction} {clue.number}",
                         "assigned_clues": [{
                             "direction": clue.direction,
                             "number": clue.number,
@@ -231,18 +233,22 @@ class CrosswordSolver:
                         }],
                         "grid": self.get_serialized_grid_state()
                     }
-
-        # If no assignment was possible, backtrack if possible
+                else:
+                    print(f"[TRY] {clue.direction} {clue.number}: Attempting '{word}' ({confidence}) ... FAIL")
+            if attempted:
+                print(f"[TRY] {clue.direction} {clue.number}: All attempts failed: {[f'{w} ({c})' for w, c in attempted]}")
         if self.backtrack_stack:
             prev_grid, prev_clues, prev_tried, last_clue, last_word = self.backtrack_stack.pop()
             self.grid = prev_grid
             self.grid.clues = prev_clues
             self.tried_candidates = prev_tried
             self.restore_grid_state(self.grid, prev_grid)
+            msg = f"Backtracked: unassigned '{last_word}' from {last_clue.direction} {last_clue.number}"
+            print(f"[SOLVE_STEP MESSAGE] {msg}")
             return {
                 "progress": True,
                 "solved": False,
-                "message": f"Backtracked: unassigned '{last_word}' from {last_clue.direction} {last_clue.number}",
+                "message": msg,
                 "assigned_clues": [{
                     "direction": last_clue.direction,
                     "number": last_clue.number,
@@ -251,11 +257,12 @@ class CrosswordSolver:
                 "grid": self.get_serialized_grid_state()
             }
 
-        # If no progress and no backtracking possible, return failure
+        msg = "No valid assignments could be made"
+        print(f"[SOLVE_STEP MESSAGE] {msg}")
         return {
-            "progress": False, 
-            "solved": False, 
-            "message": "No valid assignments could be made", 
+            "progress": False,
+            "solved": False,
+            "message": msg,
             "assigned_clues": [],
             "grid": self.get_serialized_grid_state(),
         }
